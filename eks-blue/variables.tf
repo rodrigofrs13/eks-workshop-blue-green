@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS Region"
   type        = string
-  default     = "us-west-2"
+  default     = "us-east-1"
 }
 
 variable "environment_name" {
@@ -21,4 +21,3 @@ variable "argocd_secret_manager_name_suffix" {
   description = "Name of secret manager secret for ArgoCD Admin UI Password"
   default     = "argocd-admin-secret"
 }
-
