@@ -71,7 +71,7 @@ module "eks" {
   eks_managed_node_groups = {
     initial = {
       node_group_name = local.node_group_name
-      instance_types  = ["m5.large"]
+      instance_types  = ["t2.large"]
 
       min_size     = 1
       max_size     = 5
@@ -113,7 +113,7 @@ data "aws_iam_role" "eks_admin_role_name" {
 }
 
 module "eks_blueprints_platform_teams" {
-  source  = "aws-ia/eks-blueprints-teams/aws"
+  source  = "aws-ia/eks-workshops-teams/aws"
   version = "~> 0.2"
 
   name = "team-platform"
@@ -183,7 +183,7 @@ module "eks_blueprints_platform_teams" {
 }
 
 module "eks_blueprints_dev_teams" {
-  source  = "aws-ia/eks-blueprints-teams/aws"
+  source  = "aws-ia/eks-workshops-teams/aws"
   version = "~> 0.2"
 
   for_each = {
