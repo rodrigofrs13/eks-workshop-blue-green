@@ -1,13 +1,13 @@
 variable "environment_name" {
   description = "The name of environment Infrastructure stack, feel free to rename it. Used for cluster and VPC names."
   type        = string
-  default     = "eks-workshop"
+  default     = "eks-blueprint"
 }
 
 variable "aws_region" {
   description = "AWS Region"
   type        = string
-  default     = "us-east-1"
+  default     = "us-west-2"
 }
 
 variable "vpc_cidr" {

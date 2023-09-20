@@ -71,7 +71,7 @@ module "eks" {
   eks_managed_node_groups = {
     initial = {
       node_group_name = local.node_group_name
-      instance_types  = ["t2.large"]
+      instance_types  = ["m5.large"]
 
       min_size     = 1
       max_size     = 5
@@ -82,8 +82,8 @@ module "eks" {
 
   manage_aws_auth_configmap = true
   aws_auth_roles = flatten([
-    module.eks_blueprints_platform_teams.aws_auth_configmap_role,
-    [for team in module.eks_blueprints_dev_teams : team.aws_auth_configmap_role],
+    #module.eks_blueprints_platform_teams.aws_auth_configmap_role,
+    #[for team in module.eks_blueprints_dev_teams : team.aws_auth_configmap_role],
     #{
     #  rolearn  = module.karpenter.role_arn
     #  username = "system:node:{{EC2PrivateDNSName}}"
@@ -107,170 +107,5 @@ module "eks" {
   })
 }
 
-data "aws_iam_role" "eks_admin_role_name" {
-  count     = local.eks_admin_role_name != "" ? 1 : 0
-  name = local.eks_admin_role_name
-}
 
-module "eks_blueprints_platform_teams" {
-  source  = "aws-ia/eks-workshops-teams/aws"
-  version = "~> 0.2"
 
-  name = "team-platform"
-
-  # Enables elevated, admin privileges for this team
-  enable_admin = true
- 
-  # Define who can impersonate the team-platform Role
-  users             = [
-    data.aws_caller_identity.current.arn,
-    try(data.aws_iam_role.eks_admin_role_name[0].arn, data.aws_caller_identity.current.arn),
-  ]
-  cluster_arn       = module.eks.cluster_arn
-  oidc_provider_arn = module.eks.oidc_provider_arn
-
-  labels = {
-    "elbv2.k8s.aws/pod-readiness-gate-inject" = "enabled",
-    "appName"                                 = "platform-team-app",
-    "projectName"                             = "project-platform",
-  }
-
-  annotations = {
-    team = "platform"
-  }
-
-  namespaces = {
-    "team-platform" = {
-
-      resource_quota = {
-        hard = {
-          "requests.cpu"    = "10000m",
-          "requests.memory" = "20Gi",
-          "limits.cpu"      = "20000m",
-          "limits.memory"   = "50Gi",
-          "pods"            = "20",
-          "secrets"         = "20",
-          "services"        = "20"
-        }
-      }
-
-      limit_range = {
-        limit = [
-          {
-            type = "Pod"
-            max = {
-              cpu    = "1000m"
-              memory = "1Gi"
-            },
-            min = {
-              cpu    = "10m"
-              memory = "4Mi"
-            }
-          },
-          {
-            type = "PersistentVolumeClaim"
-            min = {
-              storage = "24M"
-            }
-          }
-        ]
-      }
-    }
-
-  }
-
-  tags = local.tags
-}
-
-module "eks_blueprints_dev_teams" {
-  source  = "aws-ia/eks-workshops-teams/aws"
-  version = "~> 0.2"
-
-  for_each = {
-    burnham = {
-      labels = {
-        "elbv2.k8s.aws/pod-readiness-gate-inject" = "enabled",
-        "appName"                                 = "burnham-team-app",
-        "projectName"                             = "project-burnham",
-      }
-    }
-    riker = {
-      labels = {
-        "elbv2.k8s.aws/pod-readiness-gate-inject" = "enabled",
-        "appName"                                 = "riker-team-app",
-        "projectName"                             = "project-riker",
-      }
-    }
-  }
-  name = "team-${each.key}"
-
-  users             = [data.aws_caller_identity.current.arn]
-  cluster_arn       = module.eks.cluster_arn
-  oidc_provider_arn = module.eks.oidc_provider_arn
-
-  labels = merge(
-    {
-      team = each.key
-    },
-    try(each.value.labels, {})
-  )
-
-  annotations = {
-    team = each.key
-  }
-
-  namespaces = {
-    "team-${each.key}" = {
-      labels = merge(
-        {
-          team = each.key
-        },
-        try(each.value.labels, {})
-      )
-
-      resource_quota = {
-        hard = {
-          "requests.cpu"    = "100",
-          "requests.memory" = "20Gi",
-          "limits.cpu"      = "200",
-          "limits.memory"   = "50Gi",
-          "pods"            = "15",
-          "secrets"         = "10",
-          "services"        = "20"
-        }
-      }
-
-      limit_range = {
-        limit = [
-          {
-            type = "Pod"
-            max = {
-              cpu    = "2"
-              memory = "1Gi"
-            }
-            min = {
-              cpu    = "10m"
-              memory = "4Mi"
-            }
-          },
-          {
-            type = "PersistentVolumeClaim"
-            min = {
-              storage = "24M"
-            }
-          },
-          {
-            type = "Container"
-            default = {
-              cpu    = "50m"
-              memory = "24Mi"
-            }
-          }
-        ]
-      }
-    }
-  }
-
-  tags = local.tags
-
-}
